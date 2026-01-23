@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uplatnice - MC73 Generator Uplatnica</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <button class="mobile-menu-btn">&#9776;</button>
+
+  <div class="page-wrapper">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">MC73 Generator</div>
+
+      <ul class="sidebar-nav">
+        <li><a href="/index.html"><span class="nav-icon">&#127968;</span> Kontrolna tabla</a></li>
+        <li class="admin-only"><a href="/building.html"><span class="nav-icon">&#127970;</span> Zgrada</a></li>
+        <li class="admin-only"><a href="/apartments.html"><span class="nav-icon">&#128209;</span> Stanovi</a></li>
+        <li class="admin-only"><a href="/users.html"><span class="nav-icon">&#128101;</span> Korisnici</a></li>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Placanja</div>
+        </div>
+        <li><a href="/slips.html" class="active"><span class="nav-icon">&#128196;</span> Uplatnice</a></li>
+        <li><a href="/payments.html"><span class="nav-icon">&#128181;</span> Uplate</a></li>
+        <li><a href="/balance.html"><span class="nav-icon">&#128200;</span> Stanje</a></li>
+      </ul>
+
+      <div class="sidebar-section">
+        <div class="user-info">
+          <div class="user-name">-</div>
+          <div class="user-email">-</div>
+          <div class="user-role"></div>
+          <button onclick="logout()" class="btn btn-outline btn-sm mt-1" style="width: 100%;">
+            Odjava
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Uplatnice</h1>
+        <p class="page-subtitle">Generisanje i pregled uplatnica</p>
+      </div>
+
+      <!-- Admin view -->
+      <div id="admin-view" class="admin-only">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Generisi uplatnice</h2>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="generate-year" class="form-label required">Godina</label>
+              <select id="generate-year" class="form-control form-select">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="generate-month" class="form-label required">Mesec</label>
+              <select id="generate-month" class="form-control form-select">
+                <option value="1">Januar</option>
+                <option value="2">Februar</option>
+                <option value="3">Mart</option>
+                <option value="4">April</option>
+                <option value="5">Maj</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Avgust</option>
+                <option value="9">Septembar</option>
+                <option value="10">Oktobar</option>
+                <option value="11">Novembar</option>
+                <option value="12">Decembar</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2" style="flex-wrap: wrap;">
+            <button onclick="generateBillings()" id="generate-btn" class="btn btn-primary">
+              Generisi zaduzenja
+            </button>
+            <button onclick="downloadPDF()" id="download-btn" class="btn btn-success">
+              Preuzmi PDF
+            </button>
+            <button onclick="deleteBillings()" id="delete-btn" class="btn btn-danger">
+              Obrisi zaduzenja
+            </button>
+          </div>
+
+          <div id="generate-message" class="mt-2"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Zaduzenja za izabrani mesec</h2>
+          </div>
+          <div id="billings-list">
+            <p class="text-muted">Izaberite mesec i godinu</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- User view -->
+      <div id="user-view" class="user-only" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Moje uplatnice</h2>
+          </div>
+
+          <div class="form-group">
+            <label for="user-month-select" class="form-label">Period</label>
+            <select id="user-month-select" class="form-control form-select" onchange="loadUserBilling()">
+              <option value="">-- Izaberite mesec --</option>
+            </select>
+          </div>
+
+          <div id="user-billing">
+            <p class="text-muted">Izaberite mesec za pregled uplatnice</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    async function loadSlipsPage() {
+      const initialized = await initPage();
+      if (!initialized) return;
+
+      const user = getCurrentUser();
+
+      if (user.is_admin) {
+        document.getElementById('admin-view').style.display = '';
+        document.getElementById('user-view').style.display = 'none';
+
+        // Populate year dropdown
+        const yearSelect = document.getElementById('generate-year');
+        const currentYear = new Date().getFullYear();
+        for (let year = currentYear + 1; year >= 2024; year--) {
+          const option = document.createElement('option');
+          option.value = year;
+          option.textContent = year;
+          if (year === currentYear) option.selected = true;
+          yearSelect.appendChild(option);
+        }
+
+        // Set current month
+        const monthSelect = document.getElementById('generate-month');
+        monthSelect.value = new Date().getMonth() + 1;
+
+        // Add change listeners
+        yearSelect.addEventListener('change', loadBillings);
+        monthSelect.addEventListener('change', loadBillings);
+
+        // Load billings for current month
+        await loadBillings();
+      } else {
+        document.getElementById('admin-view').style.display = 'none';
+        document.getElementById('user-view').style.display = '';
+
+        // Load months with billings
+        await loadUserMonths();
+      }
+    }
+
+    async function loadBillings() {
+      const year = document.getElementById('generate-year').value;
+      const month = document.getElementById('generate-month').value;
+      const container = document.getElementById('billings-list');
+
+      showLoading(container);
+
+      try {
+        const billings = await api.billings.list(year, month);
+
+        if (billings.length === 0) {
+          showEmpty(container, `Nema zaduzenja za ${getMonthName(month)} ${year}`);
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Stan</th>
+                  <th>Vlasnik</th>
+                  <th>Iznos</th>
+                  <th>Referenca</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${billings.map(b => `
+                  <tr>
+                    <td><strong>${b.apartment_number}</strong></td>
+                    <td>${escapeHtml(b.owner_name)}</td>
+                    <td>${formatCurrency(b.amount)}</td>
+                    <td>${b.reference_number}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <p class="text-muted mt-2">Ukupno: ${billings.length} zaduzenja, ${formatCurrency(billings.reduce((sum, b) => sum + b.amount, 0))}</p>
+        `;
+
+      } catch (err) {
+        showError(container, err.message);
+      }
+    }
+
+    async function generateBillings() {
+      const year = parseInt(document.getElementById('generate-year').value);
+      const month = parseInt(document.getElementById('generate-month').value);
+      const btn = document.getElementById('generate-btn');
+      const messageEl = document.getElementById('generate-message');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Generisanje...';
+      messageEl.innerHTML = '';
+
+      try {
+        const result = await api.billings.generate(year, month);
+        showSuccess(messageEl, result.message);
+        showToast('Zaduzenja uspesno generisana', 'success');
+        await loadBillings();
+      } catch (err) {
+        showError(messageEl, err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generisi zaduzenja';
+      }
+    }
+
+    async function downloadPDF() {
+      const year = parseInt(document.getElementById('generate-year').value);
+      const month = parseInt(document.getElementById('generate-month').value);
+      const btn = document.getElementById('download-btn');
+      const messageEl = document.getElementById('generate-message');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Preuzimanje...';
+      messageEl.innerHTML = '';
+
+      try {
+        await api.billings.downloadPDF(year, month);
+        showToast('PDF uspesno preuzet', 'success');
+      } catch (err) {
+        showError(messageEl, err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Preuzmi PDF';
+      }
+    }
+
+    async function deleteBillings() {
+      const year = parseInt(document.getElementById('generate-year').value);
+      const month = parseInt(document.getElementById('generate-month').value);
+
+      if (!confirm(`Da li ste sigurni da zelite da obrisete sva zaduzenja za ${getMonthName(month)} ${year}?`)) {
+        return;
+      }
+
+      const btn = document.getElementById('delete-btn');
+      const messageEl = document.getElementById('generate-message');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Brisanje...';
+      messageEl.innerHTML = '';
+
+      try {
+        const result = await api.billings.delete(year, month);
+        showSuccess(messageEl, result.message);
+        showToast('Zaduzenja obrisana', 'success');
+        await loadBillings();
+      } catch (err) {
+        showError(messageEl, err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Obrisi zaduzenja';
+      }
+    }
+
+    // User functions
+    async function loadUserMonths() {
+      try {
+        const months = await api.billings.getMonths();
+        const select = document.getElementById('user-month-select');
+
+        months.forEach(m => {
+          const option = document.createElement('option');
+          option.value = `${m.billing_year}-${m.billing_month}`;
+          option.textContent = `${getMonthName(m.billing_month)} ${m.billing_year}`;
+          select.appendChild(option);
+        });
+      } catch (err) {
+        console.error('Load months error:', err);
+      }
+    }
+
+    async function loadUserBilling() {
+      const value = document.getElementById('user-month-select').value;
+      const container = document.getElementById('user-billing');
+
+      if (!value) {
+        container.innerHTML = '<p class="text-muted">Izaberite mesec za pregled uplatnice</p>';
+        return;
+      }
+
+      showLoading(container);
+
+      try {
+        const [year, month] = value.split('-').map(Number);
+        const billings = await api.billings.list(year, month);
+
+        if (billings.length === 0) {
+          showEmpty(container, 'Nemate zaduzenje za ovaj mesec');
+          return;
+        }
+
+        const billing = billings[0];
+        container.innerHTML = `
+          <div class="card" style="margin: 0;">
+            <h3>Uplatnica za ${getMonthName(billing.billing_month)} ${billing.billing_year}</h3>
+            <hr>
+            <div class="form-row">
+              <div>
+                <p class="text-muted mb-0">Iznos</p>
+                <p class="stat-value">${formatCurrency(billing.amount)}</p>
+              </div>
+              <div>
+                <p class="text-muted mb-0">Poziv na broj</p>
+                <p class="stat-value">${billing.reference_number}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        showError(container, err.message);
+      }
+    }
+
+    loadSlipsPage();
+  </script>
+</body>
+</html>

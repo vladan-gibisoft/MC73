@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stanje - MC73 Generator Uplatnica</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <button class="mobile-menu-btn">&#9776;</button>
+
+  <div class="page-wrapper">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">MC73 Generator</div>
+
+      <ul class="sidebar-nav">
+        <li><a href="/index.html"><span class="nav-icon">&#127968;</span> Kontrolna tabla</a></li>
+        <li class="admin-only"><a href="/building.html"><span class="nav-icon">&#127970;</span> Zgrada</a></li>
+        <li class="admin-only"><a href="/apartments.html"><span class="nav-icon">&#128209;</span> Stanovi</a></li>
+        <li class="admin-only"><a href="/users.html"><span class="nav-icon">&#128101;</span> Korisnici</a></li>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Placanja</div>
+        </div>
+        <li><a href="/slips.html"><span class="nav-icon">&#128196;</span> Uplatnice</a></li>
+        <li><a href="/payments.html"><span class="nav-icon">&#128181;</span> Uplate</a></li>
+        <li><a href="/balance.html" class="active"><span class="nav-icon">&#128200;</span> Stanje</a></li>
+      </ul>
+
+      <div class="sidebar-section">
+        <div class="user-info">
+          <div class="user-name">-</div>
+          <div class="user-email">-</div>
+          <div class="user-role"></div>
+          <button onclick="logout()" class="btn btn-outline btn-sm mt-1" style="width: 100%;">
+            Odjava
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Stanje</h1>
+        <p class="page-subtitle">Pregled stanja po stanovima</p>
+      </div>
+
+      <!-- Admin view -->
+      <div id="admin-view" class="admin-only">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Ukupna zaduzenja</div>
+            <div class="stat-value" id="total-billings">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Ukupne uplate</div>
+            <div class="stat-value text-success" id="total-payments">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Ukupno stanje</div>
+            <div class="stat-value" id="total-balance">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Stanova u minusu</div>
+            <div class="stat-value text-danger" id="negative-count">-</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Stanje po stanovima</h2>
+          </div>
+          <div id="balances-list">
+            <div class="loading">
+              <span class="spinner"></span>
+              <span>Ucitavanje...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User view -->
+      <div id="user-view" class="user-only" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Vase stanje</h2>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Ukupna zaduzenja</div>
+              <div class="stat-value" id="user-billings">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Ukupne uplate</div>
+              <div class="stat-value text-success" id="user-payments">-</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Trenutno stanje</div>
+              <div class="stat-value" id="user-balance">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Istorija transakcija</h2>
+          </div>
+          <div id="user-history">
+            <div class="loading">
+              <span class="spinner"></span>
+              <span>Ucitavanje...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- History Modal -->
+  <div id="history-modal" class="modal-overlay">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="history-modal-title">Istorija transakcija</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="history-content">
+          <div class="loading">
+            <span class="spinner"></span>
+            <span>Ucitavanje...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('history-modal')">Zatvori</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    async function loadBalances() {
+      const initialized = await initPage();
+      if (!initialized) return;
+
+      const user = getCurrentUser();
+
+      if (user.is_admin) {
+        document.getElementById('admin-view').style.display = '';
+        document.getElementById('user-view').style.display = 'none';
+        await loadAdminBalances();
+      } else {
+        document.getElementById('admin-view').style.display = 'none';
+        document.getElementById('user-view').style.display = '';
+        await loadUserBalance();
+      }
+    }
+
+    async function loadAdminBalances() {
+      const container = document.getElementById('balances-list');
+
+      try {
+        const balances = await api.payments.getAllBalances();
+
+        // Calculate totals
+        const totalBillings = balances.reduce((sum, b) => sum + b.totalBillings, 0);
+        const totalPayments = balances.reduce((sum, b) => sum + b.totalPayments, 0);
+        const totalBalance = balances.reduce((sum, b) => sum + b.balance, 0);
+        const negativeCount = balances.filter(b => b.balance < 0).length;
+
+        document.getElementById('total-billings').textContent = formatCurrency(totalBillings);
+        document.getElementById('total-payments').textContent = formatCurrency(totalPayments);
+
+        const balanceEl = document.getElementById('total-balance');
+        balanceEl.textContent = formatCurrency(totalBalance);
+        balanceEl.className = 'stat-value ' + (totalBalance >= 0 ? 'text-success' : 'text-danger');
+
+        document.getElementById('negative-count').textContent = negativeCount;
+
+        if (balances.length === 0) {
+          showEmpty(container, 'Nema podataka o stanju');
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Stan</th>
+                  <th>Vlasnik</th>
+                  <th>Zaduzenja</th>
+                  <th>Uplate</th>
+                  <th>Stanje</th>
+                  <th>Akcije</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${balances.map(b => `
+                  <tr>
+                    <td><strong>${b.apartment_number}</strong></td>
+                    <td>${escapeHtml(b.owner_name)}</td>
+                    <td>${formatCurrency(b.totalBillings)}</td>
+                    <td class="text-success">${formatCurrency(b.totalPayments)}</td>
+                    <td class="${b.balance >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(b.balance)}</td>
+                    <td class="table-actions">
+                      <button onclick="showHistory(${b.apartment_id}, '${escapeHtml(b.owner_name)}', ${b.apartment_number})" class="btn btn-sm btn-outline">Istorija</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+      } catch (err) {
+        console.error('Load balances error:', err);
+        showError(container, 'Greska prilikom ucitavanja stanja');
+      }
+    }
+
+    async function loadUserBalance() {
+      const historyContainer = document.getElementById('user-history');
+
+      try {
+        const apartments = await api.apartments.list();
+
+        if (apartments.length === 0) {
+          document.getElementById('user-billings').textContent = '-';
+          document.getElementById('user-payments').textContent = '-';
+          document.getElementById('user-balance').textContent = '-';
+          showEmpty(historyContainer, 'Nemate dodeljen stan');
+          return;
+        }
+
+        const apartment = apartments[0];
+        const history = await api.payments.getHistory(apartment.id);
+
+        document.getElementById('user-billings').textContent = formatCurrency(
+          history.history.filter(h => h.type === 'billing').reduce((sum, h) => sum + Math.abs(h.amount), 0)
+        );
+        document.getElementById('user-payments').textContent = formatCurrency(
+          history.history.filter(h => h.type === 'payment').reduce((sum, h) => sum + h.amount, 0)
+        );
+
+        const balanceEl = document.getElementById('user-balance');
+        balanceEl.textContent = formatCurrency(history.current_balance);
+        balanceEl.className = 'stat-value ' + (history.current_balance >= 0 ? 'text-success' : 'text-danger');
+
+        renderHistory(historyContainer, history.history);
+
+      } catch (err) {
+        console.error('Load user balance error:', err);
+        showError(historyContainer, 'Greska prilikom ucitavanja stanja');
+      }
+    }
+
+    async function showHistory(apartmentId, ownerName, apartmentNumber) {
+      document.getElementById('history-modal-title').textContent = `Stan ${apartmentNumber} - ${ownerName}`;
+      const container = document.getElementById('history-content');
+      showLoading(container);
+      openModal('history-modal');
+
+      try {
+        const history = await api.payments.getHistory(apartmentId);
+        renderHistory(container, history.history);
+      } catch (err) {
+        showError(container, err.message);
+      }
+    }
+
+    function renderHistory(container, history) {
+      if (history.length === 0) {
+        showEmpty(container, 'Nema transakcija');
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th>Tip</th>
+                <th>Opis</th>
+                <th>Iznos</th>
+                <th>Stanje</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${history.map(h => `
+                <tr>
+                  <td>${formatDate(h.date)}</td>
+                  <td>
+                    ${h.type === 'billing'
+                      ? '<span class="badge badge-warning">Zaduzenje</span>'
+                      : '<span class="badge badge-success">Uplata</span>'
+                    }
+                  </td>
+                  <td>${escapeHtml(h.description || (h.type === 'billing' ? `${h.billing_month}/${h.billing_year}` : '-'))}</td>
+                  <td class="${h.amount >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(h.amount)}</td>
+                  <td class="${h.balance >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(h.balance)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    loadBalances();
+  </script>
+</body>
+</html>

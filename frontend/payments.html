@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uplate - MC73 Generator Uplatnica</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <button class="mobile-menu-btn">&#9776;</button>
+
+  <div class="page-wrapper">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">MC73 Generator</div>
+
+      <ul class="sidebar-nav">
+        <li><a href="/index.html"><span class="nav-icon">&#127968;</span> Kontrolna tabla</a></li>
+        <li class="admin-only"><a href="/building.html"><span class="nav-icon">&#127970;</span> Zgrada</a></li>
+        <li class="admin-only"><a href="/apartments.html"><span class="nav-icon">&#128209;</span> Stanovi</a></li>
+        <li class="admin-only"><a href="/users.html"><span class="nav-icon">&#128101;</span> Korisnici</a></li>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Placanja</div>
+        </div>
+        <li><a href="/slips.html"><span class="nav-icon">&#128196;</span> Uplatnice</a></li>
+        <li><a href="/payments.html" class="active"><span class="nav-icon">&#128181;</span> Uplate</a></li>
+        <li><a href="/balance.html"><span class="nav-icon">&#128200;</span> Stanje</a></li>
+      </ul>
+
+      <div class="sidebar-section">
+        <div class="user-info">
+          <div class="user-name">-</div>
+          <div class="user-email">-</div>
+          <div class="user-role"></div>
+          <button onclick="logout()" class="btn btn-outline btn-sm mt-1" style="width: 100%;">
+            Odjava
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header flex-between">
+        <div>
+          <h1 class="page-title">Uplate</h1>
+          <p class="page-subtitle">Evidencija i pregled uplata</p>
+        </div>
+        <button onclick="openPaymentModal()" id="add-payment-btn" class="btn btn-primary admin-only">
+          + Evidentiraj uplatu
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Istorija uplata</h2>
+        </div>
+        <div id="payments-list">
+          <div class="loading">
+            <span class="spinner"></span>
+            <span>Ucitavanje...</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="payment-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Evidentiraj uplatu</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <form id="payment-form" onsubmit="savePayment(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="apartment_id" class="form-label required">Stan</label>
+            <select id="apartment_id" name="apartment_id" class="form-control form-select" required>
+              <option value="">-- Izaberite stan --</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="amount" class="form-label required">Iznos (RSD)</label>
+              <input
+                type="number"
+                id="amount"
+                name="amount"
+                class="form-control"
+                min="0.01"
+                step="0.01"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="payment_date" class="form-label required">Datum uplate</label>
+              <input
+                type="date"
+                id="payment_date"
+                name="payment_date"
+                class="form-control"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="notes" class="form-label">Napomena</label>
+            <input
+              type="text"
+              id="notes"
+              name="notes"
+              class="form-control"
+              placeholder="Opciona napomena"
+            >
+          </div>
+
+          <div id="payment-form-error" class="form-error"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('payment-modal')">Otkazi</button>
+          <button type="submit" class="btn btn-primary" id="payment-save-btn">Sacuvaj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    let payments = [];
+    let apartments = [];
+
+    async function loadPayments() {
+      const initialized = await initPage();
+      if (!initialized) return;
+
+      const user = getCurrentUser();
+
+      try {
+        payments = await api.payments.list();
+
+        if (user.is_admin) {
+          apartments = await api.apartments.list();
+          populateApartmentSelect();
+        }
+
+        renderPayments(user.is_admin);
+
+      } catch (err) {
+        console.error('Load payments error:', err);
+        showError(document.getElementById('payments-list'), 'Greska prilikom ucitavanja uplata');
+      }
+    }
+
+    function populateApartmentSelect() {
+      const select = document.getElementById('apartment_id');
+      select.innerHTML = '<option value="">-- Izaberite stan --</option>';
+
+      apartments
+        .sort((a, b) => a.apartment_number - b.apartment_number)
+        .forEach(apt => {
+          const option = document.createElement('option');
+          option.value = apt.id;
+          option.textContent = `Stan ${apt.apartment_number} - ${apt.owner_name}`;
+          select.appendChild(option);
+        });
+    }
+
+    function renderPayments(isAdmin) {
+      const container = document.getElementById('payments-list');
+
+      if (payments.length === 0) {
+        showEmpty(container, 'Nema evidentiranih uplata');
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                ${isAdmin ? '<th>Stan</th><th>Vlasnik</th>' : ''}
+                <th>Datum</th>
+                <th>Iznos</th>
+                <th>Napomena</th>
+                <th>Evidentirao</th>
+                ${isAdmin ? '<th>Akcije</th>' : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${payments.map(p => `
+                <tr>
+                  ${isAdmin ? `<td><strong>${p.apartment_number}</strong></td><td>${escapeHtml(p.owner_name)}</td>` : ''}
+                  <td>${formatDate(p.payment_date)}</td>
+                  <td class="text-success">${formatCurrency(p.amount)}</td>
+                  <td>${escapeHtml(p.notes || '-')}</td>
+                  <td>${escapeHtml(p.recorded_by_name)}</td>
+                  ${isAdmin ? `
+                    <td class="table-actions">
+                      <button onclick="deletePayment(${p.id})" class="btn btn-sm btn-danger">Obrisi</button>
+                    </td>
+                  ` : ''}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted mt-2">Ukupno: ${payments.length} uplata, ${formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}</p>
+      `;
+    }
+
+    function openPaymentModal() {
+      const form = document.getElementById('payment-form');
+      const errorEl = document.getElementById('payment-form-error');
+
+      form.reset();
+      errorEl.textContent = '';
+
+      // Set today's date as default
+      document.getElementById('payment_date').value = new Date().toISOString().split('T')[0];
+
+      openModal('payment-modal');
+    }
+
+    async function savePayment(event) {
+      event.preventDefault();
+
+      const form = event.target;
+      const errorEl = document.getElementById('payment-form-error');
+      const saveBtn = document.getElementById('payment-save-btn');
+
+      errorEl.textContent = '';
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner"></span> Cuvanje...';
+
+      try {
+        const data = {
+          apartment_id: parseInt(form.apartment_id.value),
+          amount: parseFloat(form.amount.value),
+          payment_date: form.payment_date.value,
+          notes: form.notes.value.trim() || null
+        };
+
+        await api.payments.create(data);
+        showToast('Uplata je uspesno evidentirana', 'success');
+
+        closeModal('payment-modal');
+        payments = await api.payments.list();
+        renderPayments(true);
+
+      } catch (err) {
+        errorEl.textContent = err.message || 'Greska prilikom cuvanja';
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Sacuvaj';
+      }
+    }
+
+    async function deletePayment(id) {
+      if (!confirm('Da li ste sigurni da zelite da obrisete ovu uplatu?')) {
+        return;
+      }
+
+      try {
+        await api.payments.delete(id);
+        showToast('Uplata je uspesno obrisana', 'success');
+        payments = await api.payments.list();
+        renderPayments(true);
+      } catch (err) {
+        showToast(err.message || 'Greska prilikom brisanja', 'danger');
+      }
+    }
+
+    loadPayments();
+  </script>
+</body>
+</html>

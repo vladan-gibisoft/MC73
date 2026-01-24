@@ -128,12 +128,6 @@ function showToast(message, type = 'info') {
   }, 5000);
 }
 
-/**
- * Confirmation dialog
- */
-function confirm(message) {
-  return window.confirm(message);
-}
 
 /**
  * Open modal
@@ -329,7 +323,6 @@ window.showEmpty = showEmpty;
 window.showError = showError;
 window.showSuccess = showSuccess;
 window.showToast = showToast;
-window.confirm = confirm;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.setupModalClose = setupModalClose;

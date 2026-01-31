@@ -61,16 +61,6 @@ const LABELS = {
 };
 
 /**
- * Fixed payment purpose text (Serbian Cyrillic)
- */
-const PAYMENT_PURPOSE = "Месечно одржавање зграде";
-
-/**
- * Fixed recipient prefix (Serbian Cyrillic)
- */
-const RECIPIENT_PREFIX = "Стамбена заједница";
-
-/**
  * Generate payer info lines
  * @param {Object} apartment - Apartment data
  * @param {Object} building - Building data
@@ -81,7 +71,7 @@ function generatePayerInfo(apartment, building) {
   const line1 = apartment.owner_name;
 
   // Line 2: Address with floor/apartment
-  const line2 = `${building.address}, спрат ${apartment.floor_number}, стан ${apartment.apartment_on_floor}`;
+  const line2 = `${building.address}, спрат ${apartment.floor_number}, стан ${apartment.apartment_number}`;
 
   // Line 3: City
   const line3 = building.city;
@@ -95,7 +85,7 @@ function generatePayerInfo(apartment, building) {
  * @returns {string} Recipient info string
  */
 function generateRecipientInfo(building) {
-  return `${RECIPIENT_PREFIX} ${building.address}, ${building.city}`;
+  return `${building.recipient_name} ${building.address}, ${building.city}`;
 }
 
 /**
@@ -107,7 +97,7 @@ function generateRecipientInfo(building) {
 function generateReferenceNumber(apartmentNumber, month) {
   const apt = String(apartmentNumber).padStart(2, "0");
   const mon = String(month).padStart(2, "0");
-  return `${apt}/${mon}`;
+  return `${apt}-${mon}`;
 }
 
 /**
@@ -204,8 +194,16 @@ function drawPaymentSlip(
   const recipientBoxHeight = 28;
 
   // Calculate divider bounds (aligned with left section boxes)
-  const dividerTop = slipTop + PADDING + 10;  // After payer label
-  const dividerBottom = dividerTop + payerBoxHeight + 8 + 10 + purposeBoxHeight + 8 + 10 + recipientBoxHeight;
+  const dividerTop = slipTop + PADDING + 10; // After payer label
+  const dividerBottom =
+    dividerTop +
+    payerBoxHeight +
+    8 +
+    10 +
+    purposeBoxHeight +
+    8 +
+    10 +
+    recipientBoxHeight;
 
   // Draw main outer border
   doc
@@ -274,7 +272,7 @@ function drawPaymentSlip(
     .font("Serbian")
     .fontSize(9)
     .fillColor("#000000")
-    .text(PAYMENT_PURPOSE, leftX + BOX_PADDING, leftY + BOX_PADDING, {
+    .text(building.payment_purpose, leftX + BOX_PADDING, leftY + BOX_PADDING, {
       width: leftWidth - 2 * BOX_PADDING,
     });
   leftY += purposeBoxHeight + 8;

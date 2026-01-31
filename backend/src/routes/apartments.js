@@ -85,9 +85,6 @@ router.post('/', [
   body('floor_number')
     .notEmpty().withMessage('Sprat je obavezan')
     .isInt({ min: -5, max: 100 }).withMessage('Nevazeci broj sprata'),
-  body('apartment_on_floor')
-    .notEmpty().withMessage('Broj stana na spratu je obavezan')
-    .isInt({ min: 1, max: 50 }).withMessage('Nevazeci broj stana na spratu'),
   body('override_amount')
     .optional({ nullable: true })
     .isFloat({ min: 0 }).withMessage('Iznos mora biti pozitivan broj'),
@@ -97,7 +94,7 @@ router.post('/', [
   handleValidationErrors
 ], (req, res) => {
   try {
-    const { apartment_number, owner_name, floor_number, apartment_on_floor, override_amount, user_id } = req.body;
+    const { apartment_number, owner_name, floor_number, override_amount, user_id } = req.body;
 
     // Check if apartment number already exists
     const existing = getApartmentByNumber.get(apartment_number);
@@ -118,7 +115,6 @@ router.post('/', [
       apartment_number,
       owner_name,
       floor_number,
-      apartment_on_floor,
       override_amount || null,
       user_id || null
     );
@@ -151,9 +147,6 @@ router.put('/:id', [
   body('floor_number')
     .notEmpty().withMessage('Sprat je obavezan')
     .isInt({ min: -5, max: 100 }).withMessage('Nevazeci broj sprata'),
-  body('apartment_on_floor')
-    .notEmpty().withMessage('Broj stana na spratu je obavezan')
-    .isInt({ min: 1, max: 50 }).withMessage('Nevazeci broj stana na spratu'),
   body('override_amount')
     .optional({ nullable: true })
     .isFloat({ min: 0 }).withMessage('Iznos mora biti pozitivan broj'),
@@ -164,7 +157,7 @@ router.put('/:id', [
 ], (req, res) => {
   try {
     const { id } = req.params;
-    const { apartment_number, owner_name, floor_number, apartment_on_floor, override_amount, user_id } = req.body;
+    const { apartment_number, owner_name, floor_number, override_amount, user_id } = req.body;
 
     // Check apartment exists
     const apartment = getApartmentById.get(id);
@@ -191,7 +184,6 @@ router.put('/:id', [
       apartment_number,
       owner_name,
       floor_number,
-      apartment_on_floor,
       override_amount || null,
       user_id || null,
       id

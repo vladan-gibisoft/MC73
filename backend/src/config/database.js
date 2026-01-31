@@ -26,10 +26,26 @@ const initSchema = () => {
       city TEXT NOT NULL,
       bank_account TEXT NOT NULL,
       default_amount DECIMAL(10,2) NOT NULL,
+      recipient_name TEXT NOT NULL DEFAULT 'Stambena zajednica',
+      payment_purpose TEXT NOT NULL DEFAULT 'Mesecno odrzavanje zgrade',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: Add recipient_name column if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE building ADD COLUMN recipient_name TEXT NOT NULL DEFAULT 'Stambena zajednica'`);
+  } catch (err) {
+    // Column already exists, ignore
+  }
+
+  // Migration: Add payment_purpose column if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE building ADD COLUMN payment_purpose TEXT NOT NULL DEFAULT 'Mesecno odrzavanje zgrade'`);
+  } catch (err) {
+    // Column already exists, ignore
+  }
 
   // Users table
   db.exec(`
@@ -52,7 +68,6 @@ const initSchema = () => {
       apartment_number INTEGER NOT NULL UNIQUE,
       owner_name TEXT NOT NULL,
       floor_number INTEGER NOT NULL,
-      apartment_on_floor INTEGER NOT NULL,
       override_amount DECIMAL(10,2),
       user_id INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -124,13 +139,15 @@ const prepareStatements = {
   // Building
   getBuilding: db.prepare('SELECT * FROM building WHERE id = 1'),
   upsertBuilding: db.prepare(`
-    INSERT INTO building (id, address, city, bank_account, default_amount)
-    VALUES (1, ?, ?, ?, ?)
+    INSERT INTO building (id, address, city, bank_account, default_amount, recipient_name, payment_purpose)
+    VALUES (1, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       address = excluded.address,
       city = excluded.city,
       bank_account = excluded.bank_account,
       default_amount = excluded.default_amount,
+      recipient_name = excluded.recipient_name,
+      payment_purpose = excluded.payment_purpose,
       updated_at = CURRENT_TIMESTAMP
   `),
 
@@ -139,8 +156,8 @@ const prepareStatements = {
   getApartmentByNumber: db.prepare('SELECT * FROM apartments WHERE apartment_number = ?'),
   getApartmentByUserId: db.prepare('SELECT * FROM apartments WHERE user_id = ?'),
   getAllApartments: db.prepare('SELECT * FROM apartments ORDER BY apartment_number'),
-  insertApartment: db.prepare('INSERT INTO apartments (apartment_number, owner_name, floor_number, apartment_on_floor, override_amount, user_id) VALUES (?, ?, ?, ?, ?, ?)'),
-  updateApartment: db.prepare('UPDATE apartments SET apartment_number = ?, owner_name = ?, floor_number = ?, apartment_on_floor = ?, override_amount = ?, user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  insertApartment: db.prepare('INSERT INTO apartments (apartment_number, owner_name, floor_number, override_amount, user_id) VALUES (?, ?, ?, ?, ?)'),
+  updateApartment: db.prepare('UPDATE apartments SET apartment_number = ?, owner_name = ?, floor_number = ?, override_amount = ?, user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
   deleteApartment: db.prepare('DELETE FROM apartments WHERE id = ?'),
 
   // Billings

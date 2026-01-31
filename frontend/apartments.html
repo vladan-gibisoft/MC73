@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stanovi - MC73 Generator Uplatnica</title>
   <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body>
   <button class="mobile-menu-btn">&#9776;</button>
@@ -113,19 +114,6 @@
                 required
               >
             </div>
-
-            <div class="form-group">
-              <label for="apartment_on_floor" class="form-label required">Stan na spratu</label>
-              <input
-                type="number"
-                id="apartment_on_floor"
-                name="apartment_on_floor"
-                class="form-control"
-                min="1"
-                max="50"
-                required
-              >
-            </div>
           </div>
 
           <div class="form-row">
@@ -217,7 +205,6 @@
                 <th>Br.</th>
                 <th>Vlasnik</th>
                 <th>Sprat</th>
-                <th>Stan na spratu</th>
                 <th>Iznos</th>
                 <th>Korisnik</th>
                 <th>Akcije</th>
@@ -231,7 +218,6 @@
                     <td><strong>${apt.apartment_number}</strong></td>
                     <td>${escapeHtml(apt.owner_name)}</td>
                     <td>${apt.floor_number}</td>
-                    <td>${apt.apartment_on_floor}</td>
                     <td>${apt.override_amount ? formatCurrency(apt.override_amount) : '<span class="text-muted">Podrazumevani</span>'}</td>
                     <td>${user ? escapeHtml(user.name) : '<span class="text-muted">-</span>'}</td>
                     <td class="table-actions">
@@ -261,7 +247,6 @@
         document.getElementById('apartment_number').value = apartment.apartment_number;
         document.getElementById('owner_name').value = apartment.owner_name;
         document.getElementById('floor_number').value = apartment.floor_number;
-        document.getElementById('apartment_on_floor').value = apartment.apartment_on_floor;
         document.getElementById('override_amount').value = apartment.override_amount || '';
         document.getElementById('user_id').value = apartment.user_id || '';
       } else {
@@ -296,7 +281,6 @@
           apartment_number: parseInt(form.apartment_number.value),
           owner_name: form.owner_name.value.trim(),
           floor_number: parseInt(form.floor_number.value),
-          apartment_on_floor: parseInt(form.apartment_on_floor.value),
           override_amount: form.override_amount.value ? parseFloat(form.override_amount.value) : null,
           user_id: form.user_id.value ? parseInt(form.user_id.value) : null
         };

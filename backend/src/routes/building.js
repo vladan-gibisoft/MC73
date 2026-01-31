@@ -53,16 +53,24 @@ router.put('/', [
   body('default_amount')
     .notEmpty().withMessage('Podrazumevani iznos je obavezan')
     .isFloat({ min: 0.01 }).withMessage('Iznos mora biti pozitivan broj'),
+  body('recipient_name')
+    .trim()
+    .notEmpty().withMessage('Naziv primaoca je obavezan')
+    .isLength({ max: 200 }).withMessage('Naziv primaoca ne moze biti duzi od 200 karaktera'),
+  body('payment_purpose')
+    .trim()
+    .notEmpty().withMessage('Svrha uplate je obavezna')
+    .isLength({ max: 200 }).withMessage('Svrha uplate ne moze biti duza od 200 karaktera'),
   handleValidationErrors
 ], (req, res) => {
   try {
-    const { address, city, bank_account, default_amount } = req.body;
+    const { address, city, bank_account, default_amount, recipient_name, payment_purpose } = req.body;
 
     // Format bank account before storing
     const formattedBankAccount = formatForDisplay(bank_account);
 
     // Upsert building data
-    upsertBuilding.run(address, city, formattedBankAccount, default_amount);
+    upsertBuilding.run(address, city, formattedBankAccount, default_amount, recipient_name, payment_purpose);
 
     // Return updated building
     const building = getBuilding.get();

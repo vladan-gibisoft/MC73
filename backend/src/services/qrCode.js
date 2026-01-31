@@ -24,6 +24,7 @@ const DEFAULT_QR_SIZE = 200;
  * @param {string} params.recipientCity - Recipient city
  * @param {number} params.amount - Payment amount in RSD
  * @param {string} params.referenceNumber - Reference number (XXYY format)
+ * @param {string} params.paymentPurpose - Payment purpose text
  * @param {string} params.payerName - Payer full name
  * @param {string} params.payerAddress - Payer address (including floor and apartment)
  * @param {string} params.payerCity - Payer city
@@ -37,6 +38,7 @@ function generateQRCodeData(params) {
     recipientCity,
     amount,
     referenceNumber,
+    paymentPurpose,
     payerName,
     payerAddress,
     payerCity,
@@ -46,8 +48,9 @@ function generateQRCodeData(params) {
   const formattedAccount = formatForQR(bankAccount);
 
   // Format recipient info with line break
-  // "Stambena zajednica\r\n[Address], [City]"
-  const recipientInfo = `${recipientName}\r\n${recipientAddress}, ${recipientCity}`;
+  // "Stambena zajednica\r\n[Address]"
+  let recipientInfo = recipientName + "\r\n" + recipientAddress;
+  recipientInfo = recipientInfo.slice(0, 70);
 
   // Format amount (RSD + amount with 2 decimal places, comma as decimal separator)
   const formattedAmount = `RSD${Number(amount).toFixed(2).replace(".", ",")}`;
@@ -68,7 +71,7 @@ function generateQRCodeData(params) {
     N: recipientInfo, // Recipient name and address
     I: formattedAmount, // Amount with currency
     SF: "289", // Service code: 289 = Ostale komunalne usluge
-    S: "Mesečno održavanje zgrade", // Payment purpose (Cyrillic in actual use)
+    S: paymentPurpose, // Payment purpose
     RO: formattedReference, // Reference number
     P: payerInfo, // Payer info (name, address, city)
   };
@@ -133,13 +136,19 @@ async function generatePaymentQRCode(
   // Build QR data
   const qrData = generateQRCodeData({
     bankAccount: building.bank_account,
-    recipientName: `Stambena zajednica ${building.address}, ${building.city}`, // Fixed Cyrillic text
+    recipientName: building.recipient_name,
     recipientAddress: building.address,
     recipientCity: building.city,
     amount: amount,
     referenceNumber: referenceNumber,
+    paymentPurpose: building.payment_purpose,
     payerName: apartment.owner_name,
-    payerAddress: `${building.address}, ${apartment.floor}/${apartment.apartment_number}`,
+    payerAddress:
+      building.address +
+      ", " +
+      apartment.floor_number +
+      ", " +
+      apartment.apartment_number,
     payerCity: building.city,
   });
 

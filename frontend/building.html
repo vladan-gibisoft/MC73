@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zgrada - MC73 Generator Uplatnica</title>
   <link rel="stylesheet" href="/css/styles.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body>
   <button class="mobile-menu-btn">&#9776;</button>
@@ -106,6 +107,34 @@
             </div>
           </div>
 
+          <div class="form-row">
+            <div class="form-group">
+              <label for="recipient_name" class="form-label required">Naziv primaoca</label>
+              <input
+                type="text"
+                id="recipient_name"
+                name="recipient_name"
+                class="form-control"
+                placeholder="npr. Stambena zajednica"
+                required
+              >
+              <div class="form-text">Prefiks za primaoca na uplatnici (npr. "Stambena zajednica" ili "Stamb. zajednica")</div>
+            </div>
+
+            <div class="form-group">
+              <label for="payment_purpose" class="form-label required">Svrha uplate</label>
+              <input
+                type="text"
+                id="payment_purpose"
+                name="payment_purpose"
+                class="form-control"
+                placeholder="npr. Mesecno odrzavanje zgrade"
+                required
+              >
+              <div class="form-text">Tekst koji se prikazuje u polju "svrha uplate" na uplatnici</div>
+            </div>
+          </div>
+
           <div id="form-message"></div>
 
           <div class="flex-between mt-3">
@@ -137,6 +166,8 @@
         document.getElementById('city').value = building.city || '';
         document.getElementById('bank_account').value = building.bank_account || '';
         document.getElementById('default_amount').value = building.default_amount || '';
+        document.getElementById('recipient_name').value = building.recipient_name || 'Stambena zajednica';
+        document.getElementById('payment_purpose').value = building.payment_purpose || 'Mesecno odrzavanje zgrade';
 
       } catch (err) {
         console.error('Load building error:', err);
@@ -163,7 +194,9 @@
           address: form.address.value.trim(),
           city: form.city.value.trim(),
           bank_account: form.bank_account.value.trim(),
-          default_amount: parseFloat(form.default_amount.value)
+          default_amount: parseFloat(form.default_amount.value),
+          recipient_name: form.recipient_name.value.trim(),
+          payment_purpose: form.payment_purpose.value.trim()
         };
 
         const building = await api.building.update(data);

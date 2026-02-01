@@ -184,13 +184,28 @@ function setupMobileMenu() {
 
   if (menuBtn && sidebar) {
     menuBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
+      const isOpen = sidebar.classList.toggle('open');
+      // Update aria-expanded for accessibility
+      menuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      menuBtn.setAttribute('aria-label', isOpen ? 'Zatvori meni' : 'Otvori meni');
     });
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {
       if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
         sidebar.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        menuBtn.setAttribute('aria-label', 'Otvori meni');
+      }
+    });
+
+    // Close menu on Escape key press
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        menuBtn.setAttribute('aria-expanded', 'false');
+        menuBtn.setAttribute('aria-label', 'Otvori meni');
+        menuBtn.focus(); // Return focus to the button
       }
     });
   }

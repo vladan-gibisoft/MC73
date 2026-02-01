@@ -856,15 +856,26 @@ html, body {
     left: 0;
   }
 
+  /* Push sidebar logo to the right to avoid burger menu overlap */
+  .sidebar-logo {
+    padding-left: 44px;
+  }
+
   .main-content {
     margin-left: 0;
     padding: var(--spacing-md);
     max-width: 100%;
-    padding-top: calc(var(--spacing-md) + 50px); /* Account for mobile menu button */
+  }
+
+  /* Only page header needs left padding for burger menu */
+  .page-header {
+    padding-left: calc(44px + var(--spacing-sm));
   }
 
   .mobile-menu-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: fixed;
     top: var(--spacing-md);
     left: var(--spacing-md);
@@ -872,8 +883,31 @@ html, body {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: var(--spacing-sm);
     cursor: pointer;
+    /* Minimum 44px touch target for accessibility (WCAG) */
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: background-color 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+
+  .mobile-menu-btn:hover {
+    background-color: var(--bg-color);
+    border-color: var(--primary-color);
+  }
+
+  .mobile-menu-btn:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+
+  .mobile-menu-btn:active {
+    background-color: var(--border-color);
   }
 
   .form-row {
@@ -962,7 +996,20 @@ html, body {
 @media (max-width: 480px) {
   .main-content {
     padding: var(--spacing-sm);
-    padding-top: calc(var(--spacing-sm) + 50px);
+  }
+
+  .page-header {
+    padding-left: calc(44px + var(--spacing-xs));
+  }
+
+  /* Position burger menu closer to edge on small screens */
+  .mobile-menu-btn {
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+  }
+
+  .sidebar-logo {
+    padding-left: 40px;
   }
 
   .card {

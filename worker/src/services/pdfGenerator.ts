@@ -412,15 +412,19 @@ export async function generatePaymentSlipsPDF(
       // Get embedded fonts
       const regularFont = getNotoSansRegular();
       const boldFont = getNotoSansBold();
+      const regularFontBuffer = Buffer.from(regularFont);
+      const boldFontBuffer = Buffer.from(boldFont);
 
+      // Create PDF with custom font to avoid __dirname issue with standard fonts
       const doc = new PDFDocument({
         size: 'A4',
         margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        font: regularFontBuffer,
       });
 
       // Register fonts for Serbian text (supports both Latin and Cyrillic)
-      doc.registerFont('Serbian', Buffer.from(regularFont));
-      doc.registerFont('Serbian-Bold', Buffer.from(boldFont));
+      doc.registerFont('Serbian', regularFontBuffer);
+      doc.registerFont('Serbian-Bold', boldFontBuffer);
 
       const chunks: Buffer[] = [];
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));

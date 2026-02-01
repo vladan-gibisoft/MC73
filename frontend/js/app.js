@@ -313,6 +313,72 @@ function debounce(func, wait) {
   };
 }
 
+/**
+ * Initialize responsive table scroll indicators
+ * Adds visual cues when tables are horizontally scrollable
+ */
+function initTableScrollIndicators() {
+  const containers = document.querySelectorAll('.table-container');
+
+  containers.forEach(container => {
+    const updateScrollState = () => {
+      const isScrollable = container.scrollWidth > container.clientWidth;
+      const isScrolled = container.scrollLeft > 0;
+      const isScrolledEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
+
+      container.classList.toggle('is-scrollable', isScrollable);
+      container.classList.toggle('is-scrolled', isScrolled);
+      container.classList.toggle('is-scrolled-end', isScrolledEnd);
+    };
+
+    // Initial check
+    updateScrollState();
+
+    // Update on scroll
+    container.addEventListener('scroll', updateScrollState, { passive: true });
+
+    // Update on window resize
+    window.addEventListener('resize', debounce(updateScrollState, 100));
+  });
+}
+
+/**
+ * Observer for dynamically added table containers
+ */
+function setupTableObserver() {
+  // Create a MutationObserver to watch for dynamically added tables
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === 1) {
+          // Check if the added node contains table containers
+          const containers = node.classList && node.classList.contains('table-container')
+            ? [node]
+            : node.querySelectorAll ? node.querySelectorAll('.table-container') : [];
+
+          if (containers.length > 0) {
+            // Use requestAnimationFrame to ensure DOM is ready
+            requestAnimationFrame(() => {
+              initTableScrollIndicators();
+            });
+          }
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// Initialize table observers when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  initTableScrollIndicators();
+  setupTableObserver();
+});
+
 // Export for use in other scripts
 window.formatCurrency = formatCurrency;
 window.formatDate = formatDate;
@@ -334,3 +400,4 @@ window.generateMonthOptions = generateMonthOptions;
 window.initPage = initPage;
 window.escapeHtml = escapeHtml;
 window.debounce = debounce;
+window.initTableScrollIndicators = initTableScrollIndicators;

@@ -1,0 +1,74 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Worker (wrangler dev)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/worker",
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Open Frontend (Chrome)",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Serve Frontend",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npx serve -l 3000",
+      "cwd": "${workspaceFolder}\\frontend"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Worker",
+      "port": 9229,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/worker/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Migrate DB (local)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "d1:migrate:local"],
+      "cwd": "${workspaceFolder}/worker",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Seed DB (local)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "d1:seed:local"],
+      "cwd": "${workspaceFolder}/worker",
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack (Frontend + Backend)",
+      "configurations": ["Debug Worker (wrangler dev)", "Serve Frontend"],
+      "stopAll": true,
+      "presentation": {
+        "hidden": false,
+        "group": "Development",
+        "order": 1
+      }
+    }
+  ]
+}

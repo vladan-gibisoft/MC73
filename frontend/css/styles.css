@@ -99,6 +99,11 @@ a:hover {
   padding: 0 var(--spacing-md);
 }
 
+/* Prevent horizontal overflow on the entire page */
+html, body {
+  overflow-x: hidden;
+}
+
 .page-wrapper {
   display: flex;
   min-height: 100vh;
@@ -176,6 +181,9 @@ a:hover {
   flex: 1;
   margin-left: 250px;
   padding: var(--spacing-xl);
+  max-width: calc(100% - 250px);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .page-header {
@@ -200,6 +208,8 @@ a:hover {
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .card-header {
@@ -396,10 +406,54 @@ a:hover {
 /* Tables */
 .table-container {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
+}
+
+/* Scroll shadow indicators for horizontal scrolling */
+.table-container::before,
+.table-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.table-container::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.08), transparent);
+}
+
+.table-container::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.08), transparent);
+}
+
+/* Show scroll shadows on mobile when content is scrollable */
+@media (max-width: 768px) {
+  .table-container.is-scrollable::after {
+    opacity: 1;
+  }
+
+  .table-container.is-scrolled::before {
+    opacity: 1;
+  }
+
+  .table-container.is-scrolled-end::after {
+    opacity: 0;
+  }
 }
 
 .table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
 }
@@ -418,6 +472,16 @@ a:hover {
   white-space: nowrap;
 }
 
+.table td {
+  white-space: nowrap;
+}
+
+/* Allow text wrapping on specific columns when needed */
+.table td.wrap-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
 .table tbody tr:hover {
   background-color: var(--bg-color);
 }
@@ -425,6 +489,7 @@ a:hover {
 .table-actions {
   display: flex;
   gap: var(--spacing-xs);
+  flex-wrap: nowrap;
 }
 
 /* Alerts */
@@ -621,6 +686,16 @@ a:hover {
   to { transform: rotate(360deg); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
 .loading-overlay {
   position: absolute;
   top: 0;
@@ -739,7 +814,36 @@ a:hover {
 .gap-1 { gap: var(--spacing-sm); }
 .gap-2 { gap: var(--spacing-md); }
 
-/* Responsive */
+/* Flex wrap utility for button groups */
+.flex-wrap { flex-wrap: wrap; }
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* --- Tablet Breakpoint (769px - 1024px) --- */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .main-content {
+    padding: var(--spacing-lg);
+    max-width: calc(100% - 250px);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Slightly condensed tables on tablets */
+  .table th,
+  .table td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .card {
+    padding: var(--spacing-md);
+  }
+}
+
+/* --- Mobile Breakpoint (max 768px) --- */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -755,6 +859,8 @@ a:hover {
   .main-content {
     margin-left: 0;
     padding: var(--spacing-md);
+    max-width: 100%;
+    padding-top: calc(var(--spacing-md) + 50px); /* Account for mobile menu button */
   }
 
   .mobile-menu-btn {
@@ -778,8 +884,130 @@ a:hover {
     grid-template-columns: 1fr;
   }
 
+  /* Responsive table handling */
   .table-container {
-    margin: 0 calc(-1 * var(--spacing-md));
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: 0 var(--spacing-sm);
+    border-radius: 0;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .table th,
+  .table td {
+    padding: var(--spacing-sm);
+    font-size: 0.8125rem;
+  }
+
+  .table-actions {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .table-actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  /* Cards on mobile */
+  .card {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+  }
+
+  /* Page header responsive */
+  .page-header.flex-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modal responsive */
+  .modal {
+    margin: var(--spacing-md);
+    max-width: calc(100% - 2 * var(--spacing-md));
+  }
+
+  /* Button groups - wrap on mobile */
+  .d-flex.gap-2 {
+    flex-wrap: wrap;
+  }
+
+  .d-flex.gap-2 > .btn {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+
+  /* Responsive visibility utilities */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  /* Badges - more compact */
+  .badge {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+  }
+}
+
+/* --- Small Mobile Breakpoint (max 480px) --- */
+@media (max-width: 480px) {
+  .main-content {
+    padding: var(--spacing-sm);
+    padding-top: calc(var(--spacing-sm) + 50px);
+  }
+
+  .card {
+    padding: var(--spacing-sm);
+  }
+
+  .table-container {
+    margin: 0 calc(-1 * var(--spacing-sm));
+    padding: 0;
+  }
+
+  .table {
+    min-width: 550px;
+    font-size: 0.75rem;
+  }
+
+  .table th,
+  .table td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .page-title {
+    font-size: var(--font-size-xl);
+  }
+
+  .page-subtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .stat-card {
+    padding: var(--spacing-md);
+  }
+
+  .stat-value {
+    font-size: var(--font-size-xl);
+  }
+
+  .btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+
+  .btn-lg {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
   }
 }
 

@@ -6,6 +6,10 @@ package-lock.json
 .env
 .env.local
 .env.*.local
+.dev.vars
+
+# Claude Code local settings (may contain tokens)
+.claude/settings.local.json
 
 # Database
 *.sqlite

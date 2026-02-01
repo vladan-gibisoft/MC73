@@ -13,18 +13,45 @@ A web application for managing apartment building maintenance payments, generati
 
 ## Technology Stack
 
-- **Backend**: Node.js with Express.js
-- **Database**: SQLite (better-sqlite3)
+- **Backend**: Cloudflare Workers with Hono framework
+- **Database**: Cloudflare D1 (SQLite-compatible)
 - **Frontend**: Static HTML/CSS/JavaScript (vanilla)
-- **PDF Generation**: PDFKit
+- **PDF Generation**: PDFKit with embedded fonts
 - **QR Codes**: NBS IPS QR API integration
+- **Authentication**: JWT (jose library)
 
-## Installation
+## Project Structure
+
+```
+mc73-generator-uplatnica/
+├── worker/                    # Cloudflare Worker API
+│   ├── src/
+│   │   ├── index.ts          # Entry point (Hono app)
+│   │   ├── types.ts          # TypeScript types
+│   │   ├── routes/           # API route handlers
+│   │   ├── middleware/       # Auth, validation
+│   │   ├── services/         # QR, PDF, bank account
+│   │   ├── db/               # Schema, seed, queries
+│   │   └── fonts/            # Embedded fonts (base64)
+│   ├── wrangler.toml         # Cloudflare config
+│   └── package.json
+├── frontend/                  # Static web frontend
+│   ├── css/styles.css
+│   ├── js/                   # API client, auth, app
+│   └── *.html                # Page templates
+├── .vscode/                   # VS Code debug configs
+│   ├── launch.json
+│   └── tasks.json
+└── docs/                      # Reference documentation
+```
+
+## Local Development
 
 ### Prerequisites
 
-- Node.js 18.x or higher
+- Node.js 18+
 - npm
+- Wrangler CLI (installed via npm)
 
 ### Setup
 
@@ -34,48 +61,86 @@ git clone <repository-url>
 cd mc73-generator-uplatnica
 ```
 
-2. Install backend dependencies:
+2. Install worker dependencies:
 ```bash
-cd backend
+cd worker
 npm install
 ```
 
-3. Initialize the database:
+3. Initialize local database:
 ```bash
-npm run init-db
+npm run d1:migrate:local
+npm run d1:seed:local
 ```
 
-This creates the SQLite database with:
-- All required tables (building, apartments, users, billings, payments)
-- Default admin account
-- Sample building data
-
-4. Start the development server:
+4. Start development servers:
 ```bash
+# Terminal 1: Start backend (API on http://localhost:8787)
 npm run dev
+
+# Terminal 2: Start frontend (on http://localhost:3000)
+cd ../frontend
+npx serve -l 3000
 ```
 
-5. Open the application:
-- Frontend: http://localhost:3000
-- API: http://localhost:3000/api
+5. Open http://localhost:3000 in your browser
+
+### VS Code Debugging
+
+The project includes VS Code debug configurations:
+
+1. Open the project in VS Code
+2. Go to **Run and Debug** (Ctrl+Shift+D)
+3. Select **"Full Stack (Frontend + Backend)"** from the dropdown
+4. Press F5
+
+This starts both the backend API and frontend server. Open http://localhost:3000 to use the app.
+
+**Available configurations:**
+| Configuration | Description |
+|---------------|-------------|
+| Full Stack (Frontend + Backend) | Run both servers in parallel |
+| Debug Worker (wrangler dev) | Backend API only |
+| Serve Frontend | Frontend server only |
+| Migrate DB (local) | Run D1 migrations |
+| Seed DB (local) | Seed local database |
+
+## Deployment to Cloudflare
+
+### Deploy Worker (Backend API)
+
+```bash
+cd worker
+npm run deploy
+```
+
+This deploys to Cloudflare Workers using the remote D1 database.
+
+### Deploy Frontend (Cloudflare Pages)
+
+1. Create a Cloudflare Pages project
+2. Connect to your Git repository
+3. Set build settings:
+   - Build command: (leave empty)
+   - Build output directory: `frontend`
+4. Deploy
+
+The frontend auto-detects the environment and uses the correct API URL.
+
+### Set Production Secrets
+
+```bash
+cd worker
+wrangler secret put JWT_SECRET
+# Enter a secure random string when prompted
+```
 
 ## Default Admin Account
 
-After initialization, you can log in with:
 - **Email**: `admin@zgrada.local`
 - **Password**: `Admin123!`
 
 **Important**: Change this password after first login!
-
-## Configuration
-
-Environment variables (`.env` file in backend directory):
-
-```env
-PORT=3000
-JWT_SECRET=your-secret-key-change-in-production
-DATABASE_PATH=./data/database.sqlite
-```
 
 ## API Endpoints
 
@@ -104,6 +169,7 @@ DATABASE_PATH=./data/database.sqlite
 
 ### Billings
 - `GET /api/billings` - List billings
+- `GET /api/billings/months` - List billing months
 - `POST /api/billings/generate` - Generate billings for month (admin)
 - `DELETE /api/billings/:year/:month` - Delete billings for month (admin)
 - `GET /api/billings/pdf/:year/:month` - Download PDF payment slips (admin)
@@ -115,6 +181,9 @@ DATABASE_PATH=./data/database.sqlite
 - `GET /api/payments/balance/:apartmentId` - Get apartment balance
 - `GET /api/payments/balances` - Get all balances (admin)
 - `GET /api/payments/history/:apartmentId` - Get payment history
+
+### Health
+- `GET /api/health` - Health check (no auth required)
 
 ## Bank Account Format
 
@@ -138,69 +207,15 @@ The PDF payment slips follow the Serbian standard format with:
 
 ## Reference Number Format
 
-`XX/YY` where:
+`XX-YY` where:
 - XX = Apartment number (2 digits, zero-padded)
 - YY = Billing month (2 digits, zero-padded)
 
-Example: Apartment 3, February = `03/02`
-
-## Project Structure
-
-```
-mc73-generator-uplatnica/
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── database.js      # SQLite configuration
-│   │   │   └── init-db.js       # Database initialization
-│   │   ├── middleware/
-│   │   │   ├── auth.js          # JWT authentication
-│   │   │   └── validation.js    # Input validation
-│   │   ├── routes/
-│   │   │   ├── auth.js          # Authentication routes
-│   │   │   ├── building.js      # Building routes
-│   │   │   ├── apartments.js    # Apartments routes
-│   │   │   ├── users.js         # Users routes
-│   │   │   ├── billings.js      # Billings routes
-│   │   │   └── payments.js      # Payments routes
-│   │   ├── services/
-│   │   │   ├── bankAccount.js   # Bank account formatting
-│   │   │   ├── qrCode.js        # NBS IPS QR generation
-│   │   │   └── pdfGenerator.js  # Payment slip PDF
-│   │   └── app.js               # Express application
-│   ├── data/
-│   │   └── database.sqlite      # SQLite database
-│   ├── package.json
-│   └── .env
-├── frontend/
-│   ├── css/
-│   │   └── styles.css           # Main stylesheet
-│   ├── js/
-│   │   ├── api.js               # API client
-│   │   ├── auth.js              # Authentication
-│   │   └── app.js               # Shared utilities
-│   ├── index.html               # Dashboard
-│   ├── login.html               # Login page
-│   ├── building.html            # Building settings
-│   ├── apartments.html          # Apartments management
-│   ├── users.html               # Users management
-│   ├── slips.html               # Payment slips
-│   ├── payments.html            # Payments
-│   └── balance.html             # Balance tracking
-├── docs/
-│   ├── Empty Payment Slip Example.png
-│   └── Guidelines for using the NBS IPS QR Generator-Validator.pdf
-├── project-specs/
-│   └── uplatnica-setup.md       # Project specification
-├── project-tasks/
-│   └── uplatnica-tasklist.md    # Implementation task list
-├── CLAUDE.md
-└── README.md
-```
+Example: Apartment 3, February = `03-02`
 
 ## Security
 
-- Passwords hashed with bcrypt
+- Passwords hashed with bcryptjs
 - JWT tokens for API authentication
 - Role-based access control
 - Input validation and sanitization

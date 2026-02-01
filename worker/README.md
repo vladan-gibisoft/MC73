@@ -46,11 +46,17 @@ The fonts are already embedded in `src/fonts/notoSans.ts`. If you need to regene
 npm run generate-fonts
 ```
 
-### 5. Set Secrets
+### 5. Configure Secrets
 
+**For local development**, secrets are stored in `.dev.vars` (already created, gitignored):
+```
+JWT_SECRET=dev-secret-change-in-production
+```
+
+**For production**, set secrets via Wrangler:
 ```bash
-# Set JWT secret for production
 wrangler secret put JWT_SECRET
+# Enter a secure random string when prompted
 ```
 
 ## Development

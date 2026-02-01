@@ -1,0 +1,32 @@
+{
+  "name": "mc73-api-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker API for MC73 Generator Uplatnica",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "d1:create": "wrangler d1 create mc73-db",
+    "d1:migrate": "wrangler d1 execute mc73-db --file=./src/db/schema.sql",
+    "d1:migrate:local": "wrangler d1 execute mc73-db --local --file=./src/db/schema.sql",
+    "d1:seed": "wrangler d1 execute mc73-db --file=./src/db/seed.sql",
+    "d1:seed:local": "wrangler d1 execute mc73-db --local --file=./src/db/seed.sql",
+    "generate-fonts": "node scripts/generate-fonts.cjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.6.0",
+    "jose": "^5.9.0",
+    "pdfkit": "^0.15.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241106.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/pdfkit": "^0.17.4",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.61.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -7,13 +7,15 @@
  * - Last 2 digits: Control number
  */
 
+import type { BankAccountParsed } from '../types';
+
 /**
  * Parse and format Serbian bank account number
- * @param {string} input - Bank account in short or full format
- * @returns {Object} Parsed bank account with all formats
- * @throws {Error} If input is invalid
+ * @param input - Bank account in short or full format
+ * @returns Parsed bank account with all formats
+ * @throws Error if input is invalid
  */
-function parseBankAccount(input) {
+export function parseBankAccount(input: string): BankAccountParsed {
   if (!input || typeof input !== 'string') {
     throw new Error('Bank account number is required');
   }
@@ -33,7 +35,7 @@ function parseBankAccount(input) {
       account: digits.slice(3, 16),
       control: digits.slice(16, 18),
       formatted: `${digits.slice(0, 3)}-${digits.slice(3, 16)}-${digits.slice(16, 18)}`,
-      digits: digits
+      digits: digits,
     };
   }
 
@@ -49,39 +51,41 @@ function parseBankAccount(input) {
       account,
       control,
       formatted: `${bank}-${account}-${control}`,
-      digits: `${bank}${account}${control}`
+      digits: `${bank}${account}${control}`,
     };
   }
 
-  throw new Error('Invalid bank account format. Must be 7-18 digits (e.g., 16054891267 or 160-0000000548912-67)');
+  throw new Error(
+    'Invalid bank account format. Must be 7-18 digits (e.g., 16054891267 or 160-0000000548912-67)'
+  );
 }
 
 /**
  * Format bank account for display with dashes
- * @param {string} bankAccount - Bank account in any format
- * @returns {string} Formatted as XXX-XXXXXXXXXXXXX-XX
+ * @param bankAccount - Bank account in any format
+ * @returns Formatted as XXX-XXXXXXXXXXXXX-XX
  */
-function formatForDisplay(bankAccount) {
+export function formatForDisplay(bankAccount: string): string {
   const parsed = parseBankAccount(bankAccount);
   return parsed.formatted;
 }
 
 /**
  * Format bank account for QR code (digits only)
- * @param {string} bankAccount - Bank account in any format
- * @returns {string} 18-digit string without dashes
+ * @param bankAccount - Bank account in any format
+ * @returns 18-digit string without dashes
  */
-function formatForQR(bankAccount) {
+export function formatForQR(bankAccount: string): string {
   const parsed = parseBankAccount(bankAccount);
   return parsed.digits;
 }
 
 /**
  * Validate bank account format
- * @param {string} input - Bank account to validate
- * @returns {boolean} True if valid
+ * @param input - Bank account to validate
+ * @returns True if valid
  */
-function isValidBankAccount(input) {
+export function isValidBankAccount(input: string): boolean {
   try {
     parseBankAccount(input);
     return true;
@@ -92,29 +96,10 @@ function isValidBankAccount(input) {
 
 /**
  * Get bank code from account number
- * @param {string} bankAccount - Bank account in any format
- * @returns {string} 3-digit bank code
+ * @param bankAccount - Bank account in any format
+ * @returns 3-digit bank code
  */
-function getBankCode(bankAccount) {
+export function getBankCode(bankAccount: string): string {
   const parsed = parseBankAccount(bankAccount);
   return parsed.bank;
 }
-
-/**
- * Express validator custom validator
- */
-function bankAccountValidator(value) {
-  if (!isValidBankAccount(value)) {
-    throw new Error('Invalid bank account format');
-  }
-  return true;
-}
-
-module.exports = {
-  parseBankAccount,
-  formatForDisplay,
-  formatForQR,
-  isValidBankAccount,
-  getBankCode,
-  bankAccountValidator
-};

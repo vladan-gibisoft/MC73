@@ -1,0 +1,20 @@
+name = "mc73-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "mc73-db"
+database_id = "1d41ec59-3eee-498f-a116-fdd99df60a11"  # Replace with actual ID after running: wrangler d1 create mc73-db
+
+# Environment variables (set via wrangler secret for production)
+[vars]
+JWT_SECRET = "dev-secret-change-in-production"
+JWT_EXPIRES_IN = "24h"
+
+# Local development settings
+[dev]
+port = 8787
+local_protocol = "http"
